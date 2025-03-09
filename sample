@@ -1,0 +1,26 @@
+private Predicate<Order> deliveryStatusPredicate = order ->
+            order.orderStatus().equalsIgnoreCase(DELIVERED);
+    @Override
+    public OrderStatusSummary apply(String s, List<Order> orders) {
+        boolean hasDeliveredStatus =
+                orders.stream().anyMatch(deliveryStatusPredicate);
+        String deliveryStatus = hasDeliveredStatus ? DELIVERED : CANCELLED;
+        BigDecimal totalAmount =
+                orders.stream()
+                        .filter(deliveryStatusPredicate)
+                        .map(Order::amount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        totalAmount = hasDeliveredStatus ? totalAmount : null;
+        orders.sort(Comparator.comparing(Order::orderId).reversed());
+        List<OrderSummary> orderSummaryList =
+                orders.stream()
+                        .map(order -> new OrderSummary(order.orderId(), order.amount()))
+                        .toList();
+        Delivery delivery = orders.getFirst().delivery();
+        return new OrderStatusSummary(
+                delivery.deliveryId(),
+                delivery.deliveryTime(),
+                deliveryStatus,
+                orderSummaryList,
+                totalAmount);
+    }
